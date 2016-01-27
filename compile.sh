@@ -14,10 +14,27 @@ if hash vmware-uninstall-tools.pl >/dev/null 2>&1; then
 fi
 
 
-VMWARE_INSTALL_OPTIONS="--clobber-kernel-modules=pvscsi,vmblock,vmci,vmhgfs,vmmemctl,vmsync,vmxnet,vmxnet3,vsock"
+VMWARE_INSTALL_OPTIONS="--clobber-kkernel-modules=pvscsi,vmblock,vmci,vmhgfs,vmmemctl,vmsync,vmxnet,vmxnet3,vsock"
+ANSWERS="--default"
 
+# The number of answers required changes between tools versions
+# future work is to come up with simple defaults for each tools version
+# or figure out how to discover number of answers required via some other mechanism
 if [[ -n "$1" ]]; then
-	VMWARE_INSTALL_OPTIONS="$1"
+  if [[ -f "$1" ]]; then
+    if  [[ `grep "/usr/lib/vmware-tools" "$1"` ]]; then
+      #echo "Passed file has some valid answers for vmware-tools"
+      ANSWERS=$(cat "$1")
+    else
+      echo "Passed file but invalid answer file for vmware-tools"
+    fi
+  elif [[ "$1" == *"yes"* ]] && [[ "$1" == *"/usr/lib/vmware-tools"* ]]; then
+    #echo "Some valid answers were passed"
+    ANSWERS="$1"
+  else
+    #echo "Overriding default force options using supplied force options"
+    VMWARE_INSTALL_OPTIONS="$1"
+  fi
 fi
 
 pushd vmware-tools-distrib >/dev/null
@@ -34,8 +51,6 @@ if sudo ./vmware-install.pl --help 2>&1 | grep -q 'force-install'; then
     VMWARE_INSTALL_OPTIONS="--force-install ${VMWARE_INSTALL_OPTIONS}"
 fi
 
-sudo ./vmware-install.pl --default ${VMWARE_INSTALL_OPTIONS}
+sudo ./vmware-install.pl ${ANSWERS} ${VMWARE_INSTALL_OPTIONS}
 
 popd >/dev/null
-
-
